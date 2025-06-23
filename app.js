@@ -139,11 +139,11 @@ const questionDatabase = {
         },
         {
             "question": "This prestigious golf tournament can be streamed on Paramount+ with the Showtime plan.",
-            "answer": "What is The Masters?"
+            "answer": "Who is The Masters?"
         },
         {
             "question": "Paramount+ has exclusive rights to this U.S. women's professional soccer league through 2027.",
-            "answer": "What is the NWSL (National Women's Soccer League)?"
+            "answer": "Who is the NWSL (National Women's Soccer League)?"
         },
         {
             "question": "This Italian football league's matches are available exclusively on Paramount+ in the United States.",
@@ -163,7 +163,7 @@ const questionDatabase = {
         },
         {
             "question": "This Scottish football league's exclusive US rights are held by Paramount+ through 2024/25.",
-            "answer": "What is the Scottish Premiership?"
+            "answer": "Who is the Scottish Premiership?"
         },
         {
             "question": "These three divisions of English football below the Premier League have matches on Paramount+.",
@@ -897,7 +897,7 @@ function startGame() {
                     return;
                 }
                 
-                speak(`Our categories today are: ${categoryText}....  Good luck, and remember to phrase your response in the form of a question!..  ..,. ${currentPlayer.name}, you're up first. Please select a category and break time amount.`, {
+                speak(`Our categories today are: ${categoryText}....  Good luck, and remember to phrase your response in the form of a question!..  ..,. ${currentPlayer.name}, you're up first. Please select a category and break time value.`, {
                     rate: 0.8
                 });
             } catch (error) {
@@ -1072,8 +1072,12 @@ function startCountdown() {
                 // Add warning class when time is running low
                 if (gameState.countdownTime <= 10 && gameState.countdownTime > 5) {
                     elements.countdownTimer.className = 'countdown-timer warning';
+                    // Play warning sound with increasing frequency
+                    playTimerWarningSound(gameState.countdownTime);
                 } else if (gameState.countdownTime <= 5) {
                     elements.countdownTimer.className = 'countdown-timer danger';
+                    // Play warning sound with increasing frequency
+                    playTimerWarningSound(gameState.countdownTime);
                 }
             } else {
                 console.error('Countdown timer element lost during countdown');
@@ -1206,10 +1210,21 @@ function handleAnswer(isCorrect) {
     updateCurrentPlayerDisplay();
     gameState.questionsAnswered++;
 
-    // Close modal and move to next player
+    // Close modal and either stay with current player (if correct) or move to next player (if incorrect)
     setTimeout(() => {
         elements.questionModal.style.display = 'none';
-        nextPlayer();
+        
+        // Only move to next player if answer was incorrect
+        if (!isCorrect) {
+            nextPlayer();
+        } else {
+            // For correct answers, keep the same player but announce they get to go again
+            const player = getCurrentPlayer();
+            speak(`${player.name} gets to go again! Please select another category.`, {
+                rate: 0.8,
+                pitch: 1.0
+            });
+        }
     }, 5000);
 }
 
@@ -1492,7 +1507,42 @@ function playSound(soundId) {
     const sound = document.getElementById(soundId);
     if (sound) {
         sound.currentTime = 0;
+        
+        // Don't reset warning sound volume as it's controlled by the playTimerWarningSound function
+        if (soundId !== 'warningSound') {
+            sound.volume = 0.7; // Default volume for other sounds
+        }
+        
         sound.play().catch(e => console.warn('Sound play failed:', e));
+    }
+}
+
+// Play warning sound with increasing frequency as timer gets lower
+function playTimerWarningSound(secondsRemaining) {
+    // Play warning sound at exactly 10 seconds
+    if (secondsRemaining === 10) {
+        const sound = document.getElementById('warningSound');
+        if (sound) {
+            sound.volume = 0.8; // Set to 80% volume
+            playSound('warningSound');
+        }
+        console.log('Playing 10-second warning sound');
+    } 
+    // Play warning at 7 seconds
+    else if (secondsRemaining === 7) {
+        const sound = document.getElementById('warningSound');
+        if (sound) {
+            sound.volume = 0.9; // Set to 90% volume
+            playSound('warningSound');
+        }
+    }
+    // Play every second when 5 seconds or less remain
+    else if (secondsRemaining <= 5) {
+        const sound = document.getElementById('warningSound');
+        if (sound) {
+            sound.volume = 1.0; // Set to 100% volume (maximum)
+            playSound('warningSound');
+        }
     }
 }
 
